@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+    <title>奖状生成器</title>
+
+    <!-- html2canvas -->
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+            background: linear-gradient(135deg, #f6f7fb, #eef1f6);
+            min-height: 100vh;
+            padding: 1rem;
+            color: #333;
+        }
+
+        /* 顶部工具栏 */
+        .toolbar {
+            max-width: 600px;
+            margin: 0 auto 20px;
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(10px);
+            border-radius: 18px;
+            padding: 12px;
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08), 0 2px 6px rgba(0, 0, 0, 0.05);
+        }
+
+        /* 输入框 */
+        .toolbar input {
+            flex: 1;
+            min-width: 220px;
+            max-width: 375px;
+            height: 50px;
+            border: none;
+            outline: none;
+            border-radius: 14px;
+            padding: 0 18px;
+            font-size: 16px;
+            background: #f3f5f9;
+            color: #333;
+            transition: all .25s ease;
+            box-shadow: inset 0 0 0 2px transparent;
+        }
+
+        .toolbar input:focus {
+            background: #fff;
+            box-shadow: inset 0 0 0 2px #1976d2, 0 0 0 4px rgba(25, 118, 210, .12);
+        }
+
+        .toolbar input::placeholder {
+            color: #999;
+        }
+
+        /* 下载按钮 */
+        .download-btn {
+            height: 50px;
+            padding: 0 12px;
+            border: none;
+            border-radius: 14px;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all .25s ease;
+            background: linear-gradient(135deg, #ff9800, #ffb74d);
+            color: white;
+            box-shadow: 0 6px 16px rgba(255, 152, 0, .3);
+        }
+
+        .download-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(255, 152, 0, .35);
+        }
+
+        .download-btn:active {
+            transform: scale(.96);
+        }
+
+        /* 奖状区域 */
+        .certificate-wrap {
+            display: flex;
+            justify-content: center;
+        }
+
+        /* 4:3 比例 */
+        .certificate {
+            width: min(568px, calc(100vw - 24px));
+            aspect-ratio: 4 / 3;
+            position: relative;
+            overflow: hidden;
+            border-radius: 22px;
+            background: radial-gradient(circle at top left, rgba(255, 255, 255, .92), rgba(255, 248, 220, .88)), linear-gradient(135deg, #fffdf5, #f7ebc0);
+            box-shadow: 0 18px 40px rgba(0, 0, 0, .14), 0 6px 16px rgba(0, 0, 0, .08), inset 0 0 0 2px rgba(201, 161, 59, .12);
+            padding: 18px;
+        }
+
+        /* 外层金边 */
+        .certificate::before {
+            content: "";
+            position: absolute;
+            inset: 14px;
+            border: 4px solid #c89b2c;
+            border-radius: 18px;
+            pointer-events: none;
+        }
+
+        /* 内层虚线边框 */
+        .certificate::after {
+            content: "";
+            position: absolute;
+            inset: 30px;
+            border: 1px dashed rgba(200, 155, 44, .7);
+            border-radius: 12px;
+            pointer-events: none;
+        }
+
+        /* 内容层 */
+        .certificate-inner {
+            position: relative;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            padding: 2rem;
+            background: transparent;
+        }
+
+        /* 顶部淡金纹理 */
+        .certificate-inner::before {
+            content: "";
+            position: absolute;
+            top: -80px;
+            left: -80px;
+            width: 220px;
+            height: 220px;
+            background: radial-gradient(circle, rgba(255, 215, 120, .18), transparent 70%);
+            pointer-events: none;
+        }
+
+        /* 主标题 */
+        .title {
+            text-align: center;
+            font-size: 2.125rem;
+            font-weight: bold;
+            letter-spacing: 12px;
+            color: #b8860b;
+            margin-bottom: 20px;
+            text-shadow: 0 2px 0 rgba(255, 255, 255, .7);
+        }
+
+        /* 正文 */
+        .content {
+            color: #4a4a4a;
+            font-size: 16px;
+            line-height: 2;
+            flex: 1;
+        }
+
+        .flex {
+            display: flex;
+            justify-content: center
+        }
+
+        .award {
+            display: inline-block;
+            font-size: 28px;
+            line-height: 1.8;
+            padding: 0 12px;
+            margin-bottom: 20px;
+            color: #b8860b;
+            font-weight: bold;
+            letter-spacing: 12px;
+            border-bottom: 3px solid #d8a927;
+        }
+
+        /* 姓名 */
+        #studentName {
+            font-weight: bold;
+            color: #222;
+            font-size: 16px;
+            border-bottom: 1px solid #222;
+            padding: 0 6px 2px;
+        }
+
+
+        /* 右下角 */
+        .text-right {
+            line-height: 1.5;
+            text-align: right;
+        }
+
+        @media (max-width: 768px) {
+            .toolbar input {
+                max-width: 240px;
+            }
+
+            .certificate {
+                padding: 0.6rem;
+            }
+
+            .certificate::before {
+                inset: 0.5rem;
+            }
+
+            .certificate::after {
+                inset: 1rem;
+            }
+
+            .certificate-inner {
+                padding: 1rem 1.4rem;
+            }
+
+            .title {
+                font-size: 1.6rem;
+                margin-bottom: 0.5rem;
+            }
+
+            #studentName, .content {
+                line-height: 1.8;
+                font-size: 0.7rem;
+            }
+
+            .award {
+                padding: 0 0.3rem;
+                margin-bottom: 0.85rem;
+                font-size: 1.2rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="toolbar">
+    <input id="nameInput" type="text" placeholder="请输入姓名"/>
+
+    <button class="download-btn" onclick="downloadImage()">
+        下载图片
+    </button>
+</div>
+
+<div class="certificate-wrap">
+    <div class="certificate" id="certificate">
+        <div class="certificate-inner">
+            <div class="title">荣誉奖状</div>
+            <div class="content">
+                <div>
+                    <span id="studentName">张三</span> 同学：
+                </div>
+
+                <div>在2025-2026学年度第一学期语文期末考试中发挥出色，成绩显著，荣获：</div>
+
+                <div class="flex">
+                    <div class="award">学习标兵</div>
+                </div>
+
+                <div>特发此状，以资鼓励！</div>
+                <div class="text-right">
+                    <div>胜利第一小学</div>
+                    <div>2026年1月9日</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const isMobile = window.matchMedia('(max-width: 768px)').matches
+    if (isMobile) {
+        document.documentElement.style.fontSize = window.innerWidth / 375 * 16 + 'px'
+    }
+    const nameInput = document.getElementById('nameInput');
+    const studentName = document.getElementById('studentName');
+
+    // 实时更新姓名
+    nameInput.addEventListener('input', function () {
+        const name = this.value.trim();
+        studentName.innerText = name || '张三';
+    });
+
+    // 下载图片
+    function downloadImage() {
+        const certificate = document.getElementById('certificate');
+
+        html2canvas(certificate, {
+            scale: 3,
+            useCORS: true
+        }).then(canvas => {
+            const link = document.createElement('a');
+            const name = studentName.innerText || '奖状';
+            link.download = `${name}-奖状.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        });
+    }
+</script>
+
+</body>
+</html>
